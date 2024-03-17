@@ -24,6 +24,7 @@ pub struct Handlers {
     pub auto_save: Sender<AutoSaveEvent>,
     pub document_colors: Sender<lsp::DocumentColorsEvent>,
     pub word_index: word_index::Handler,
+    pub copilot: Option<Sender<lsp::CopilotRequestCompletionEvent>>,
 }
 
 impl Handlers {

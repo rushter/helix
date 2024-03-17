@@ -34,6 +34,7 @@ pub fn setup(config: Arc<ArcSwap<Config>>) -> Handlers {
         auto_save,
         document_colors,
         word_index,
+        copilot: None,
     };
 
     helix_view::handlers::register_hooks(&handlers);
