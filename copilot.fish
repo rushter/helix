@@ -2,7 +2,7 @@
 function clone_copilot_lsp
     echo "*** Cloning the copilot lsp into /usr/local/bin ***"
     set -l url "https://github.com/github/copilot.vim"
-    set -l folder_name "dist/"
+    set -l folder_name "copilot-language-server/dist/"
     set -l temp_dir (mktemp -d)
 
     if test -d "/usr/local/bin/$folder_name"
