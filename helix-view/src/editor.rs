@@ -427,6 +427,7 @@ pub struct Config {
     /// Whether to read settings from [EditorConfig](https://editorconfig.org) files. Defaults to
     /// `true`.
     pub editor_config: bool,
+    pub copilot_auto_render: bool,
     /// Whether to render rainbow colors for matching brackets. Defaults to `false`.
     pub rainbow_brackets: bool,
     /// Whether to enable Kitty Keyboard Protocol
@@ -1175,6 +1176,7 @@ impl Default for WordCompletion {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            copilot_auto_render: true,
             scrolloff: 5,
             scroll_lines: 3,
             mouse: true,

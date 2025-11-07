@@ -268,10 +268,14 @@ impl Transport {
         if let Some(tx) = self.pending_requests.lock().await.remove(&id) {
             match tx.send(result).await {
                 Ok(_) => (),
-                Err(_) => log::debug!(
-                    "Tried sending response into a closed channel (id={:?}), likely a fire-and-forget shutdown",
-                    id
-                ),
+                Err(_) => {
+                    if language_server_name != "copilot" {
+                        log::debug!(
+                            "Tried sending response into a closed channel (id={:?}), likely a fire-and-forget shutdown",
+                            id
+                        )
+                    }
+                }
             };
         } else {
             log::error!(
