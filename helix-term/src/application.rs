@@ -128,7 +128,7 @@ impl Application {
         let area = terminal.size();
         let mut compositor = Compositor::new(area);
         let config = Arc::new(ArcSwap::from_pointee(config));
-        let handlers = handlers::setup(config.clone());
+        let handlers = handlers::setup(config.clone(), args.enable_copilot);
         let mut editor = Editor::new(
             area,
             Arc::new(theme_loader),
@@ -1331,10 +1331,11 @@ impl Application {
         }
 
         if self.editor.close_language_servers(None).await.is_err() {
-            log::error!("Timed out waiting for language servers to shutdown");
-            errs.push(anyhow::format_err!(
-                "Timed out waiting for language servers to shutdown"
-            ));
+            // this often happens with copilot, let's disable it for now
+            // log::error!("Timed out waiting for language servers to shutdown");
+            // errs.push(anyhow::format_err!(
+            //     "Timed out waiting for language servers to shutdown"
+            // ));
         }
 
         errs

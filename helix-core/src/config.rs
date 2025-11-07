@@ -1,7 +1,13 @@
+use crate::syntax::config::LanguageServerFeatures;
 use crate::syntax::{
     config::{Configuration, LanguageConfiguration},
     Loader, LoaderError,
 };
+use helix_loader::VERSION_AND_GIT_HASH;
+use serde_json::json;
+use std::collections::HashSet;
+
+static ENABLE_COPILOT: once_cell::sync::OnceCell<bool> = once_cell::sync::OnceCell::new();
 
 /// Language configuration based on built-in languages.toml.
 pub fn default_lang_config() -> Configuration {
@@ -12,7 +18,11 @@ pub fn default_lang_config() -> Configuration {
 
 /// Language configuration loader based on built-in languages.toml.
 pub fn default_lang_loader() -> Loader {
-    Loader::new(default_lang_config()).expect("Could not compile loader for default config")
+    let mut config = default_lang_config();
+    if ENABLE_COPILOT.get().map_or(false, |v| *v) {
+        append_copilot_lsp_to_language_configs(&mut config);
+    }
+    Loader::new(config).expect("Could not compile loader for default config")
 }
 
 #[derive(Debug)]
@@ -45,7 +55,7 @@ pub fn user_lang_config() -> Result<Configuration, toml::de::Error> {
 pub fn user_lang_loader() -> Result<Loader, LanguageLoaderError> {
     let config_val =
         helix_loader::config::user_lang_config().map_err(LanguageLoaderError::DeserializeError)?;
-    let config = config_val.clone().try_into().map_err(|e| {
+    let mut config = config_val.clone().try_into().map_err(|e| {
         if let Some(languages) = config_val.get("language").and_then(|v| v.as_array()) {
             for lang in languages.iter() {
                 let res: Result<LanguageConfiguration, _> = lang.clone().try_into();
@@ -60,5 +70,39 @@ pub fn user_lang_loader() -> Result<Loader, LanguageLoaderError> {
         }
         LanguageLoaderError::ConfigError(e, String::new())
     })?;
+
+    if ENABLE_COPILOT.get().map_or(false, |v| *v) {
+        append_copilot_lsp_to_language_configs(&mut config);
+    }
     Loader::new(config).map_err(LanguageLoaderError::LoaderError)
+}
+
+fn append_copilot_lsp_to_language_configs(config: &mut Configuration) {
+    let copilot_ls = LanguageServerFeatures {
+        name: "copilot".into(),
+        only: HashSet::new(),
+        excluded: HashSet::new(),
+    };
+
+    let copilot_config = config.language_server.get_mut("copilot").expect("Could not find copilot config in languages.toml");
+    copilot_config.config  = Some(json![
+        {
+            "editorInfo" : {
+                "name": "helix",
+                "version": VERSION_AND_GIT_HASH.to_string(),
+            },
+            "editorPluginInfo": {
+                "name": "helix-copilot",
+                "version": VERSION_AND_GIT_HASH.to_string(),
+            },
+        }
+    ]);
+
+    for lan_config in config.language.iter_mut() {
+        lan_config.language_servers.push(copilot_ls.clone());
+    }
+}
+
+pub fn initialize_enable_copilot(enable_copilot: bool) {
+    ENABLE_COPILOT.set(enable_copilot).ok();
 }

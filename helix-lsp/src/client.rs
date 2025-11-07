@@ -1,4 +1,5 @@
 use crate::{
+    copilot_types,
     file_operations::FileOperationsInterest,
     find_lsp_workspace, jsonrpc,
     transport::{Payload, Transport},
@@ -1570,6 +1571,18 @@ impl Client {
         Some(self.call::<lsp::request::Rename>(params))
     }
 
+    pub fn copilot_completion(
+        &self,
+        document: copilot_types::Document,
+    ) -> impl Future<Output = Result<Option<copilot_types::CompletionResponse>>> {
+        let params = copilot_types::CompletionRequestParams { doc: document };
+        let request = self.call::<copilot_types::CompletionRequest>(params);
+
+        async move {
+            let response = request.await?;
+            Ok(response)
+        }
+    }
     pub fn command(
         &self,
         command: lsp::Command,

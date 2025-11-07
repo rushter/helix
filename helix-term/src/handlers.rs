@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::events;
 use crate::handlers::auto_save::AutoSaveHandler;
 use crate::handlers::diagnostics::PullDiagnosticsHandler;
+use crate::handlers::copilot::CopilotHandler;
 use crate::handlers::signature_help::SignatureHelpHandler;
 
 pub use helix_view::handlers::{word_index, Handlers};
@@ -16,13 +17,14 @@ use self::document_colors::DocumentColorsHandler;
 
 mod auto_save;
 pub mod completion;
+mod copilot;
 pub mod diagnostics;
 mod document_colors;
 mod prompt;
 mod signature_help;
 mod snippet;
 
-pub fn setup(config: Arc<ArcSwap<Config>>) -> Handlers {
+pub fn setup(config: Arc<ArcSwap<Config>>, enable_copilot: bool) -> Handlers {
     events::register();
 
     let event_tx = completion::CompletionHandler::new(config).spawn();
@@ -32,6 +34,11 @@ pub fn setup(config: Arc<ArcSwap<Config>>) -> Handlers {
     let word_index = word_index::Handler::spawn();
     let pull_diagnostics = PullDiagnosticsHandler::default().spawn();
     let pull_all_documents_diagnostics = PullAllDocumentsDiagnosticHandler::default().spawn();
+    let copilot = if enable_copilot {
+        Some(CopilotHandler::new().spawn())
+    } else {
+        None
+    };
 
     let handlers = Handlers {
         completions: helix_view::handlers::completion::CompletionHandler::new(event_tx),
@@ -41,7 +48,9 @@ pub fn setup(config: Arc<ArcSwap<Config>>) -> Handlers {
         word_index,
         pull_diagnostics,
         pull_all_documents_diagnostics,
+        copilot,
     };
+
 
     helix_view::handlers::register_hooks(&handlers);
     completion::register_hooks(&handlers);
@@ -50,6 +59,7 @@ pub fn setup(config: Arc<ArcSwap<Config>>) -> Handlers {
     diagnostics::register_hooks(&handlers);
     snippet::register_hooks(&handlers);
     document_colors::register_hooks(&handlers);
+    copilot::try_register_hooks(&handlers);
     prompt::register_hooks(&handlers);
     handlers
 }
